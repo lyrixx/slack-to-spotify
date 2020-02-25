@@ -68,7 +68,6 @@ function add_track_to_playlist(string $accessToken, string $playlistId, string $
     $endpoint = "https://api.spotify.com/v1/playlists/$playlistId/tracks?";
     $endpoint .= http_build_query([
         'uris' => $trackId,
-        'position' => 0,
     ]);
 
     $ok = file_get_contents($endpoint, false, $context);
