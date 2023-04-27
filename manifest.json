@@ -1,0 +1,32 @@
+{
+    "display_information": {
+        "name": "slack-to-spotify"
+    },
+    "features": {
+        "bot_user": {
+            "display_name": "slacktospotify",
+            "always_online": false
+        },
+        "unfurl_domains": [
+            "spotify.com"
+        ]
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "links:read"
+            ]
+        }
+    },
+    "settings": {
+        "event_subscriptions": {
+            "request_url": "FIXME",
+            "bot_events": [
+                "link_shared"
+            ]
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false
+    }
+}

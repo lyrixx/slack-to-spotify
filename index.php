@@ -1,19 +1,22 @@
 <?php
 
-$refreshToken = $_SERVER['SPOTIFY_REFRESH_TOKEN'] ?? $_ENV['SPOTIFY_REFRESH_TOKEN'];
-$clientId = $_SERVER['SPOTIFY_CLIENT_ID'] ?? $_ENV['SPOTIFY_CLIENT_ID'];
-$clientSecret = $_SERVER['SPOTIFY_CLIENT_SECRET'] ?? $_ENV['SPOTIFY_CLIENT_SECRET'];
-$playlistId = $_SERVER['SPOTIFY_PLAYLIST_ID'] ?? $_ENV['SPOTIFY_PLAYLIST_ID'];
+$enabledLog = (bool) ($_SERVER['SPOTIFY_ENABLED_LOG'] ?? $_ENV['SPOTIFY_ENABLED_LOG'] ?? false);
 
 set_error_handler(function (int $type, string $message, string $file, int $line) {
     throw new \ErrorException($message, 0, $type, $file, $line);
 });
 
 set_exception_handler(function (\Throwable $e) {
+    log2('An exception occurred.', (string) $e);
     echo "An exception occurred\n";
     echo $e;
     echo "\n";
 });
+
+$refreshToken = $_SERVER['SPOTIFY_REFRESH_TOKEN'] ?? $_ENV['SPOTIFY_REFRESH_TOKEN'];
+$clientId = $_SERVER['SPOTIFY_CLIENT_ID'] ?? $_ENV['SPOTIFY_CLIENT_ID'];
+$clientSecret = $_SERVER['SPOTIFY_CLIENT_SECRET'] ?? $_ENV['SPOTIFY_CLIENT_SECRET'];
+$playlistId = $_SERVER['SPOTIFY_PLAYLIST_ID'] ?? $_ENV['SPOTIFY_PLAYLIST_ID'];
 
 function get_access_token(string $clientId, string $clientSecret, string $refreshToken): string
 {
@@ -78,27 +81,56 @@ function add_track_to_playlist(string $accessToken, string $playlistId, string $
     }
 }
 
+function log2(string $message, mixed $payload = null)
+{
+    global $enabledLog;
+    if (!$enabledLog) {
+        return;
+    }
+
+    if (null !== $payload) {
+        $message .= ' '.json_encode($payload);
+    }
+
+    error_log($message);
+}
+
 $payload = json_decode(file_get_contents('php://input'), true);
 
+log2("New payload.", $payload);
+
 if (!$payload) {
+    log2('No payload.');
     echo 'no payload';
 
     return;
 }
 
 if ('url_verification' === $payload['type']) {
+    log2("return URL verification");
+
     echo $payload['challenge'];
 
     return;
 }
 
 if ('event_callback' === $payload['type']) {
+    // It means the message has not been posted yet.
+    // We want to track only shared message in the channel.
+    // So we discard this event.
+    if ('composer' === $payload['event']['source']) {
+        log2('It is a composer event.');
+
+        return;
+    }
+
     $trackIds = [];
 
     $links = $payload['event']['links'] ?? [];
     foreach ($links as ['url' => $url]) {
         $host = parse_url($url, PHP_URL_HOST);
         if ('open.spotify.com' !== $host) {
+            log2('Not a spotify link.');
             continue;
         }
 
@@ -107,6 +139,7 @@ if ('event_callback' === $payload['type']) {
         $parts = explode('/', $path);
 
         if (count($parts) < 2 || 'track' !== $parts[0]) {
+            log2('Not a track.');
             continue;
         }
 
@@ -114,19 +147,21 @@ if ('event_callback' === $payload['type']) {
     }
 
     if (!$trackIds) {
-        echo 'no tracks detected';
+        log2('No tracks detected.');
 
         return;
     }
 
     $accessToken = get_access_token($clientId, $clientSecret, $refreshToken);
     foreach ($trackIds as $trackId) {
+        log2("Add track $trackId to playlist $playlistId.");
         add_track_to_playlist($accessToken, $playlistId, $trackId);
     }
 
-    echo 'OK';
+    log2('OK');
 
     return;
 }
 
-echo 'payload no supported';
+log2('Payload no supported.');
+echo 'Payload no supported.';
