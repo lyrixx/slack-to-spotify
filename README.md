@@ -86,6 +86,8 @@ Here we go! we have a `refresh_token`. We will use it to get a new token each ti
 4. Install the app in the workspace;
 5. Invite the bot in the channel `/invite @BOT_NAME`.
 
+See the `manifest.json` for the app configuration.
+
 ### Application configuration
 
 ```
