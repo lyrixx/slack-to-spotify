@@ -53,6 +53,32 @@ function get_access_token(string $clientId, string $clientSecret, string $refres
     return json_decode($result, true)['access_token'];
 }
 
+function get_artists_fist_track(string $accessToken, string $artistId): ?string
+{
+    $opts = [
+        'http' => [
+            'protocol_version' => 1.1,
+            'method' => 'GET',
+            'header' => implode("\r\n", [
+                "Authorization: Bearer $accessToken",
+                'Content-Length: 0',
+            ]),
+        ],
+    ];
+
+    $context = stream_context_create($opts);
+
+    $endpoint = "https://api.spotify.com/v1/artists/$artistId/top-tracks";
+
+    $topTracks = file_get_contents($endpoint, false, $context);
+
+    if (false === $topTracks) {
+        throw new \RuntimeException("Could not get first track for artist ($artistId).");
+    }
+
+    return $topTracks[0]['id'];
+}
+
 function add_track_to_playlist(string $accessToken, string $playlistId, string $trackId)
 {
     $opts = [
@@ -125,6 +151,7 @@ if ('event_callback' === $payload['type']) {
     }
 
     $trackIds = [];
+    $accessToken = get_access_token($clientId, $clientSecret, $refreshToken);
 
     $links = $payload['event']['links'] ?? [];
     foreach ($links as ['url' => $url]) {
@@ -139,11 +166,18 @@ if ('event_callback' === $payload['type']) {
         $parts = explode('/', $path);
 
         if (count($parts) < 2 || 'track' !== $parts[0]) {
-            log2('Not a track.');
+            log2('Not recognized.');
             continue;
         }
 
-        $trackIds[] = 'spotify:track:'.$parts[1];
+        switch ($parts[0]) {
+            case 'track':
+                $trackIds[] = 'spotify:track:'.$parts[1];
+                break;
+            case 'artist':
+                $trackIds[] = 'spotify:track:'.get_artists_fist_track($accessToken, $parts[1]);
+                break;
+        }
     }
 
     if (!$trackIds) {
@@ -152,7 +186,6 @@ if ('event_callback' === $payload['type']) {
         return;
     }
 
-    $accessToken = get_access_token($clientId, $clientSecret, $refreshToken);
     foreach ($trackIds as $trackId) {
         log2("Add track $trackId to playlist $playlistId.");
         add_track_to_playlist($accessToken, $playlistId, $trackId);
