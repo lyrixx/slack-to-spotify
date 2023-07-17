@@ -53,7 +53,7 @@ function get_access_token(string $clientId, string $clientSecret, string $refres
     return json_decode($result, true)['access_token'];
 }
 
-function get_artists_fist_track(string $accessToken, string $artistId): ?string
+function get_artists_first_track(string $accessToken, string $artistId): ?string
 {
     $opts = [
         'http' => [
@@ -175,7 +175,7 @@ if ('event_callback' === $payload['type']) {
                 $trackIds[] = 'spotify:track:'.$parts[1];
                 break;
             case 'artist':
-                $trackIds[] = 'spotify:track:'.get_artists_fist_track($accessToken, $parts[1]);
+                $trackIds[] = 'spotify:track:'.get_artists_first_track($accessToken, $parts[1]);
                 break;
         }
     }
