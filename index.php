@@ -55,6 +55,8 @@ function get_access_token(string $clientId, string $clientSecret, string $refres
 
 function get_artists_first_track(string $accessToken, string $artistId): ?string
 {
+    log2("Get first track for artist ($artistId).");
+
     $opts = [
         'http' => [
             'protocol_version' => 1.1,
@@ -68,7 +70,7 @@ function get_artists_first_track(string $accessToken, string $artistId): ?string
 
     $context = stream_context_create($opts);
 
-    $endpoint = "https://api.spotify.com/v1/artists/$artistId/top-tracks";
+    $endpoint = "https://api.spotify.com/v1/artists/$artistId/top-tracks?market=FR";
 
     $topTracks = file_get_contents($endpoint, false, $context);
 
@@ -76,7 +78,39 @@ function get_artists_first_track(string $accessToken, string $artistId): ?string
         throw new \RuntimeException("Could not get first track for artist ($artistId).");
     }
 
-    return $topTracks[0]['id'];
+    $topTracks = json_decode($topTracks, true);
+
+    return $topTracks['tracks'][0]['id'] ?? null;
+}
+
+function get_album_first_track(string $accessToken, string $albumId): ?string
+{
+    log2("Get first track for album ($albumId).");
+
+    $opts = [
+        'http' => [
+            'protocol_version' => 1.1,
+            'method' => 'GET',
+            'header' => implode("\r\n", [
+                "Authorization: Bearer $accessToken",
+                'Content-Length: 0',
+            ]),
+        ],
+    ];
+
+    $context = stream_context_create($opts);
+
+    $endpoint = "https://api.spotify.com/v1/albums/$albumId";
+
+    $album = file_get_contents($endpoint, false, $context);
+
+    if (false === $album) {
+        throw new \RuntimeException("Could not get first track for artist ($albumId).");
+    }
+
+    $album = json_decode($album, true);
+
+    return $album['tracks']['items'][0]['id'] ?? null;
 }
 
 function add_track_to_playlist(string $accessToken, string $playlistId, string $trackId)
@@ -165,7 +199,9 @@ if ('event_callback' === $payload['type']) {
         $path = ltrim($path, '/');
         $parts = explode('/', $path);
 
-        if (count($parts) < 2 || 'track' !== $parts[0]) {
+        log2("Current link's", $parts);
+
+        if (count($parts) < 2) {
             log2('Not recognized.');
             continue;
         }
@@ -175,7 +211,20 @@ if ('event_callback' === $payload['type']) {
                 $trackIds[] = 'spotify:track:'.$parts[1];
                 break;
             case 'artist':
-                $trackIds[] = 'spotify:track:'.get_artists_first_track($accessToken, $parts[1]);
+                $id = get_artists_first_track($accessToken, $parts[1]);
+                if (!$id) {
+                    log2('No track found for artist.');
+                    break;
+                }
+                $trackIds[] = 'spotify:track:'.$id;
+                break;
+            case 'album':
+                $id = get_album_first_track($accessToken, $parts[1]);
+                if (!$id) {
+                    log2('No track found for album.');
+                    break;
+                }
+                $trackIds[] = 'spotify:track:'.$id;
                 break;
         }
     }
