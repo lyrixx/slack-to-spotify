@@ -208,6 +208,10 @@ if ('event_callback' === $payload['type']) {
             continue;
         }
 
+        if ($parts[0] === 'intl-fr') {
+            array_shift($parts);
+        }
+
         switch ($parts[0]) {
             case 'track':
                 $trackIds[] = 'spotify:track:'.$parts[1];
