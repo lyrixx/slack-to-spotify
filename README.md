@@ -21,7 +21,15 @@ We need a real application that run on internet... or we can fake it
 
 #### oAuth Dance
 
-Then we will simulate the oAuth dance by hand.
+If you have [Castor](https://castor.jolicode.com/) installed, you can run the
+following command. It guides you through the whole oAuth dance, and can update
+the `.env` file for you:
+
+```
+castor refresh-token
+```
+
+Otherwise, we will simulate the oAuth dance by hand.
 
 Edit the following URL with your `CLIENT_ID` and `REDIRECT_URL`, then open it in your browser to get the `CODE`.
 
