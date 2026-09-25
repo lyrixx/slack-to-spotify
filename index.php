@@ -1,5 +1,9 @@
 <?php
 
+$refreshToken = $_SERVER['SPOTIFY_REFRESH_TOKEN'] ?? $_ENV['SPOTIFY_REFRESH_TOKEN'];
+$clientId = $_SERVER['SPOTIFY_CLIENT_ID'] ?? $_ENV['SPOTIFY_CLIENT_ID'];
+$clientSecret = $_SERVER['SPOTIFY_CLIENT_SECRET'] ?? $_ENV['SPOTIFY_CLIENT_SECRET'];
+$playlistId = $_SERVER['SPOTIFY_PLAYLIST_ID'] ?? $_ENV['SPOTIFY_PLAYLIST_ID'];
 $enabledLog = (bool) ($_SERVER['SPOTIFY_ENABLED_LOG'] ?? $_ENV['SPOTIFY_ENABLED_LOG'] ?? false);
 
 set_error_handler(function (int $type, string $message, string $file, int $line) {
@@ -12,11 +16,6 @@ set_exception_handler(function (Throwable $e) {
     echo $e;
     echo "\n";
 });
-
-$refreshToken = $_SERVER['SPOTIFY_REFRESH_TOKEN'] ?? $_ENV['SPOTIFY_REFRESH_TOKEN'];
-$clientId = $_SERVER['SPOTIFY_CLIENT_ID'] ?? $_ENV['SPOTIFY_CLIENT_ID'];
-$clientSecret = $_SERVER['SPOTIFY_CLIENT_SECRET'] ?? $_ENV['SPOTIFY_CLIENT_SECRET'];
-$playlistId = $_SERVER['SPOTIFY_PLAYLIST_ID'] ?? $_ENV['SPOTIFY_PLAYLIST_ID'];
 
 function get_access_token(string $clientId, string $clientSecret, string $refreshToken): string
 {
