@@ -12,7 +12,7 @@ set_error_handler(function (int $type, string $message, string $file, int $line)
 
 set_exception_handler(function (Throwable $e) {
     // Always logged, unlike the log2() traces: a failure must not go unnoticed
-    error_log('An exception occurred. '.json_encode((string) $e));
+    error_log('An exception occurred. '.$e);
     echo "An exception occurred\n";
     echo $e;
     echo "\n";
