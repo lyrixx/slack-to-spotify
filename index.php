@@ -39,15 +39,9 @@ function get_access_token(string $clientId, string $clientSecret, string $refres
         ],
     ];
 
-    $context = stream_context_create($opts);
-
     $endpoint = 'https://accounts.spotify.com/api/token';
 
-    $result = file_get_contents($endpoint, false, $context);
-
-    if (false === $result) {
-        throw new \RuntimeException("Could not get token for client ({$clientId}).");
-    }
+    $result = spotify_request($endpoint, $opts, "Could not get token for client ({$clientId}).");
 
     return json_decode($result, true)['access_token'];
 }
@@ -67,15 +61,9 @@ function get_artists_first_track(string $accessToken, string $artistId): ?string
         ],
     ];
 
-    $context = stream_context_create($opts);
-
     $endpoint = "https://api.spotify.com/v1/artists/{$artistId}/top-tracks?market=FR";
 
-    $topTracks = file_get_contents($endpoint, false, $context);
-
-    if (false === $topTracks) {
-        throw new \RuntimeException("Could not get first track for artist ({$artistId}).");
-    }
+    $topTracks = spotify_request($endpoint, $opts, "Could not get first track for artist ({$artistId}).");
 
     $topTracks = json_decode($topTracks, true);
 
@@ -97,15 +85,9 @@ function get_album_first_track(string $accessToken, string $albumId): ?string
         ],
     ];
 
-    $context = stream_context_create($opts);
-
     $endpoint = "https://api.spotify.com/v1/albums/{$albumId}";
 
-    $album = file_get_contents($endpoint, false, $context);
-
-    if (false === $album) {
-        throw new \RuntimeException("Could not get first track for artist ({$albumId}).");
-    }
+    $album = spotify_request($endpoint, $opts, "Could not get first track for artist ({$albumId}).");
 
     $album = json_decode($album, true);
 
@@ -125,19 +107,41 @@ function add_track_to_playlist(string $accessToken, string $playlistId, string $
         ],
     ];
 
-    $context = stream_context_create($opts);
-
     $endpoint = "https://api.spotify.com/v1/playlists/{$playlistId}/tracks?";
     $endpoint .= http_build_query([
         'uris' => $trackId,
         'position' => 0,
     ]);
 
-    $ok = file_get_contents($endpoint, false, $context);
+    spotify_request($endpoint, $opts, "Could not add track ({$trackId}) to the playlist ({$playlistId}).");
+}
 
-    if (false === $ok) {
-        throw new \RuntimeException("Could not add track ({$trackId}) to the playlist ({$playlistId}).");
+/**
+ * Sends a request to Spotify and returns the response body.
+ *
+ * file_get_contents() drops the body of a failed response, i.e. the reason given by Spotify
+ * ({"error":"invalid_grant","error_description":"Refresh token revoked"}...): keep it in the
+ * exception, and so in the logs.
+ */
+function spotify_request(string $endpoint, array $opts, string $error): string
+{
+    $opts['http']['ignore_errors'] = true;
+
+    $body = file_get_contents($endpoint, false, stream_context_create($opts));
+
+    // The last status line: the one of the final response, after redirects
+    $status = 0;
+    foreach (http_get_last_response_headers() ?? [] as $header) {
+        if (preg_match('{^HTTP/\S+ (\d{3})}', $header, $match)) {
+            $status = (int) $match[1];
+        }
     }
+
+    if (false === $body || $status < 200 || $status >= 300) {
+        throw new \RuntimeException(sprintf('%s Spotify answered HTTP %d: %s', $error, $status, false === $body ? '(no body)' : $body));
+    }
+
+    return $body;
 }
 
 function log2(string $message, mixed $payload = null)
