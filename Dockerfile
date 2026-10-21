@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:1-php8.5-alpine
+FROM dunglas/frankenphp:1-php8.5.12-alpine
 
 RUN set -eux; \
     cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"; \
